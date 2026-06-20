@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>VoiceClip</title>
+  <meta name="description" content="Voice to text with AI cleanup">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#08080f">
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VoiceClip">
+  <link rel="apple-touch-icon" href="icon-192.svg">
+
+  <!-- Geist font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="http-warning" class="http-warning hidden">
+    For microphone access on iOS, this app must be served over HTTPS.
+  </div>
+
+  <div class="app-container">
+
+    <header class="header">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+          </svg>
+        </div>
+        <span class="app-title">VoiceClip</span>
+      </div>
+      <button id="settings-btn" class="settings-btn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+          <path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96a7.18 7.18 0 0 0-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87a.49.49 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Main stage: visualizer + button + status + result -->
+    <div class="main-stage">
+      <div class="bar-viz" id="bar-viz">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+
+      <div class="record-container">
+        <button id="record-btn" class="record-btn" aria-label="Start recording">
+          <svg class="mic-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+          </svg>
+          <div class="stop-icon"></div>
+          <div class="spinner-icon"><div class="spinner"></div></div>
+        </button>
+      </div>
+
+      <div class="status-block">
+        <span id="status" class="status">Tap to record</span>
+        <span id="status-sub" class="status-sub">Hold steady, speak naturally</span>
+      </div>
+
+      <div id="result-section" class="result-section hidden">
+        <div id="result-skeleton" class="result-skeleton hidden"></div>
+        <textarea id="result-text" class="result-text" placeholder="Transcribed text will appear here…" spellcheck="true"></textarea>
+        <div class="result-actions">
+          <button id="copy-btn" class="copy-btn">Copy</button>
+          <button id="reclean-btn" class="reclean-btn">Re-clean</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls dock -->
+    <div class="controls-dock">
+      <div class="dock-row">
+        <span class="dock-label">Tone</span>
+        <div class="tone-row" role="group" aria-label="Tone">
+          <button class="chip active" data-tone="casual">Casual</button>
+          <button class="chip" data-tone="formal">Formal</button>
+          <button class="chip" data-tone="bullets">Bullets</button>
+        </div>
+      </div>
+      <div class="dock-row">
+        <span class="dock-label">Lang</span>
+        <div class="lang-row" role="group" aria-label="Language">
+          <button class="chip active" data-lang="en">EN</button>
+          <button class="chip" data-lang="hi-en">हिं / EN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Settings Bottom Sheet -->
+  <div id="settings-modal" class="sheet-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="sheet-backdrop" id="sheet-backdrop"></div>
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <span id="sheet-title" class="sheet-title">Settings</span>
+        <button id="modal-close" class="sheet-done">Done</button>
+      </div>
+      <div class="sheet-body">
+
+        <div class="sheet-section-head">Transcription</div>
+        <div class="sheet-card">
+          <div class="sheet-row">
+            <label for="cfg-transcription-provider">Provider</label>
+            <select id="cfg-transcription-provider">
+              <option value="browser">Browser (Free)</option>
+              <option value="openai-whisper">OpenAI Whisper</option>
+              <option value="groq-whisper">Groq Whisper</option>
+              <option value="openai-gpt4o-mini">OpenAI GPT-4o Mini</option>
+            </select>
+          </div>
+          <div class="sheet-row">
+            <label for="cfg-transcription-key">API Key</label>
+            <input type="password" id="cfg-transcription-key" placeholder="sk-…">
+          </div>
+          <div class="sheet-row sheet-row-last">
+            <label for="cfg-language-mode">Language</label>
+            <select id="cfg-language-mode">
+              <option value="en">English</option>
+              <option value="hi-en">Hindi / English</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sheet-section-head">AI Cleanup</div>
+        <div class="sheet-card">
+          <div class="sheet-row">
+            <label for="cfg-cleanup-provider">Provider</label>
+            <select id="cfg-cleanup-provider">
+              <option value="anthropic">Anthropic Claude</option>
+              <option value="openai-gpt4o-mini">OpenAI GPT-4o Mini</option>
+              <option value="groq-llama">Groq Llama</option>
+            </select>
+          </div>
+          <div class="sheet-row sheet-row-last">
+            <label for="cfg-cleanup-key">API Key</label>
+            <input type="password" id="cfg-cleanup-key" placeholder="sk-ant-…">
+          </div>
+        </div>
+
+        <details class="sheet-advanced">
+          <summary class="sheet-advanced-toggle">Advanced · model overrides</summary>
+          <div class="sheet-card sheet-card-advanced">
+            <div class="sheet-row">
+              <label for="cfg-transcription-model">Transcription Model</label>
+              <input type="text" id="cfg-transcription-model" placeholder="whisper-1">
+            </div>
+            <div class="sheet-row sheet-row-last">
+              <label for="cfg-cleanup-model">Cleanup Model</label>
+              <input type="text" id="cfg-cleanup-model" placeholder="claude-haiku-4-5-20251001">
+            </div>
+          </div>
+        </details>
+
+      </div>
+      <div class="sheet-footer">
+        <button id="save-settings" class="save-btn">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

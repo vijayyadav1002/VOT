@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="42" fill="#0f0f0f"/>
+  <g fill="#ffffff">
+    <!-- Microphone capsule -->
+    <path d="M96 116c14.36 0 26-11.64 26-26V54c0-14.36-11.64-26-26-26S70 39.64 70 54v36c0 14.36 11.64 26 26 26z"/>
+    <!-- Stand and base -->
+    <path d="M142 90c0 25.4-20.6 46-46 46s-46-20.6-46-46H38c0 30.93 22.42 56.63 52 61.64V164h12v-12.36C131.58 146.63 154 120.93 154 90h-12z"/>
+  </g>
+</svg>

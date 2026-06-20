@@ -1,0 +1,13 @@
+# Environment & secrets
+.env
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# AI / IDE config
+.claude/
+.superpowers/
+
+# Internal design & planning artifacts
+docs
