@@ -17,8 +17,10 @@
   --btn-hover:    #141428;
 }
 
-html, body {
+html {
   height: 100%;
+  /* Prevent iOS bounce scroll revealing the dark background */
+  background: var(--bg);
 }
 
 body {
@@ -26,7 +28,8 @@ body {
   background-image: radial-gradient(ellipse 360px 280px at 50% -60px, rgba(99, 102, 241, 0.13) 0%, transparent 80%);
   color: var(--text);
   font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  min-height: 100vh;
+  min-height: 100vh;        /* fallback */
+  min-height: 100dvh;       /* shrinks to exclude Safari address bar */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -63,7 +66,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 24px 0;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 24px 0;
   flex-shrink: 0;
 }
 
