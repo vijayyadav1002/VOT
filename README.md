@@ -25,7 +25,7 @@ Works offline after first load. Installable as a PWA on iOS and Android.
 
 ## Demo
 
-🔗 **[your-app.vercel.app](https://your-app.vercel.app)** ← update after deploying
+🔗 **[vot-beige.vercel.app](https://vot-beige.vercel.app)** ← update after deploying
 
 ## Features
 
