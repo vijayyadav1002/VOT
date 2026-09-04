@@ -59,8 +59,10 @@ Cleanup rules:
 
 CRITICAL — mixed script, never translate:
 • This is code-switching, not translation. Do not convert the whole transcript into Hindi or into English.
-• Hindi words and Hindi grammar (मैं, है, में, को, के लिए, रहा, गया, वाला, कल, …) MUST stay in Devanagari.
+• Hindi words and Hindi grammar (मैं, है, में, को, के लिए, रहा, गया, वाला, कल, मुझे, …) MUST be Devanagari.
 • English words MUST stay in Latin letters with normal English spelling (meeting, office, laptop, project, email, call, practice, assignment).
+• NEVER use Urdu or Arabic script. Forbidden: کل, مجھے, میں, ہے, جانا. Those are the same words as कल, मुझे, मैं, है, जाना — always Devanagari, never Nastaliq.
+• If speech-to-text emitted Urdu/Arabic letters, convert those Hindi words to Devanagari. Keep English words in Latin.
 • Never write an English word in Devanagari (forbidden: मीटिंग, ऑफिस, लैपटॉप, प्रोजेक्ट, ईमेल, प्रैक्टिस).
 • Never write a Hindi word in Roman letters (forbidden: main, hai, raha hoon — use मैं, है, रहा हूँ).
 • If speech-to-text already put an English word in Devanagari, restore English spelling: मीटिंग → meeting, ऑफिस → office.
@@ -82,13 +84,13 @@ Examples of correct output:
 Return ONLY the cleaned text. Nothing else.`;
 
 const HINGLISH_STT_PROMPT =
-  'Hinglish. Hindi words in Devanagari. English words in English spelling, never Devanagari. Example: मैं office जा रहा हूँ for the meeting.';
+  'Hindi-English mix. Hindi in Devanagari only, never Urdu or Arabic script. English words in English spelling. Example: कल मुझे office जाना है for the meeting.';
 
 const CLEANUP_RETRY_PROMPT =
 `Previous output looked like an assistant response. Retry as a transcription editor only. Return the cleaned transcript text and nothing else.`;
 
 const HINGLISH_SCRIPT_RETRY_PROMPT =
-`Previous output collapsed mixed speech into one script or translated English into Hindi. Retry as a mixed-script editor: Hindi in Devanagari, English in Latin spelling. Do not translate. Return only the cleaned transcript.`;
+`Previous output used Urdu/Arabic script, or collapsed mixed speech into one language. Retry: Hindi in Devanagari only (कल मुझे, never کل مجھے). English in Latin spelling. Never Arabic/Urdu letters. Do not translate. Return only the cleaned transcript.`;
 
 const CLEANUP_FAILURE_PATTERNS = [
   /^i['’]?m a transcription editor\b/i,
@@ -103,7 +105,7 @@ function buildCleanupUserMessage(text, tone) {
   const lines = [`tone=${tone}`];
   if (CONFIG.LANGUAGE_MODE === 'hi-en') {
     lines.push('script=mixed');
-    lines.push('Write Hindi in Devanagari. Write English in Latin. Do not translate either language.');
+    lines.push('Write Hindi in Devanagari only (not Urdu/Arabic). Write English in Latin. Do not translate.');
   }
   lines.push(
     '',
@@ -141,8 +143,20 @@ function looksLikeHinglishScriptCollapse(output, rawText) {
   return false;
 }
 
+const ARABIC_SCRIPT_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+
+function hasArabicScript(text) {
+  return ARABIC_SCRIPT_RE.test(String(text || ''));
+}
+
+function looksLikeHinglishCleanupBad(output, rawText) {
+  return hasArabicScript(output) || looksLikeHinglishScriptCollapse(output, rawText);
+}
+
 function applyTranscriptionLanguage(formData) {
   if (CONFIG.LANGUAGE_MODE === 'hi-en') {
+    // Pin Hindi so Whisper does not auto-detect Urdu (Arabic script).
+    formData.append('language', 'hi');
     formData.append('prompt', HINGLISH_STT_PROMPT);
   } else {
     formData.append('language', 'en');
@@ -418,7 +432,7 @@ const CleanupService = {
     if (
       attempt === 0 &&
       (looksLikeCleanupFailure(cleaned, text) ||
-        (CONFIG.LANGUAGE_MODE === 'hi-en' && looksLikeHinglishScriptCollapse(cleaned, text)))
+        (CONFIG.LANGUAGE_MODE === 'hi-en' && looksLikeHinglishCleanupBad(cleaned, text)))
     ) {
       return this.cleanup(text, tone, 1);
     }
