@@ -43,20 +43,24 @@ The single `CONFIG` object at the top of `app.js` controls all provider routing.
 Two service objects route to provider implementations based on `CONFIG`:
 
 - **`TranscriptionService`** — `.transcribeBlob(audioBlob)` for API providers; `.startBrowserRecognition(onInterim, onFinal, onError)` for the `"browser"` provider (webkitSpeechRecognition). Adding a new provider only requires touching these two objects.
-- **`CleanupService`** — `.cleanup(text, tone)` calls the selected AI provider with a `tone=<value>` prefix on the user message. Uses `CLEANUP_SYSTEM_PROMPT` for English and `CLEANUP_SYSTEM_PROMPT_HI` for Hinglish (`LANGUAGE_MODE === 'hi-en'`). Both prompts instruct the model to act as a text editor only — never answering questions or acting on the content, only cleaning it up.
+- **`CleanupService`** — `.cleanup(text, tone)` calls the selected AI provider with a `tone=<value>` prefix on the user message. Uses `CLEANUP_SYSTEM_PROMPT` for English and `CLEANUP_SYSTEM_PROMPT_HI` for Hinglish (`LANGUAGE_MODE === 'hi-en'`). Both prompts instruct the model to act as a text editor only — never answering questions or acting on the content, only cleaning it up. Hinglish cleanup is mixed-script (Hindi in Devanagari, English in Latin) and must not translate; a retry fires if English Latin words collapse into Devanagari. Whisper calls in `hi-en` send a mixed-script `prompt` hint instead of `language=en`.
 
 ### Recording flow
 
-1. `startRecording()` acquires mic stream → starts either `SpeechRecognition` (browser) or `MediaRecorder` (API providers).
-2. Silence detection polls `AnalyserNode` every 150 ms; auto-stops after 2.5 s below threshold.
-3. Stop path:
-   - **browser**: accumulated `state.rawTranscript` goes directly to `processCleanup()`.
-   - **API providers**: `handleBlobStop()` uploads the blob, then calls `processCleanup()`.
-4. `processCleanup(rawText)` shows raw text immediately, then replaces with AI-cleaned version.
+1. `startRecording()` acquires a mic stream, then starts either `SpeechRecognition` (browser) or `MediaRecorder` (API providers). A session mutex (`sessionPhase` + `takeGen`) ignores overlapping mic / Done / Start over while acquiring, recording, transcribing, or cleaning.
+2. Stop **releases the mic** via `releaseAudio()` — not `MediaRecorder.pause()`. There is **no** AnalyserNode silence auto-stop.
+3. After a non-empty take the session is **paused**. Concatenated transcript **text** (never audio blobs) is the source of truth in the textarea. The user chooses:
+   - **Mic tap while paused**: re-acquire the mic and append the next take with `appendTranscript`.
+   - **Done**: run `processCleanup()` once on the full concatenated raw.
+   - **Start over**: discard the in-progress draft and start a new conversation.
+4. Stop path:
+   - **browser**: accumulated `state.rawTranscript` goes to `enterPaused()` (no cleanup yet).
+   - **API providers**: `handleBlobStop()` transcribes that take’s blob, appends text, then `enterPaused()`.
+5. `processCleanup(rawText)` runs **only on Done**: shows a skeleton, then the AI-cleaned version, then persists `{ id, ts, raw, cleaned, tone, language }` to `localStorage` key `voiceclip_history` (newest-first, FIFO cap 10).
 
 ### State
 
-Single `state` object in module scope — no framework. `state.rawTranscript` is the unmodified transcript preserved for Re-clean.
+Single `state` object in module scope — no framework. `state.rawTranscript` is the unmodified transcript preserved for Re-clean. `state.sessionPhase` is `idle` | `acquiring` | `recording` | `paused` | `cleaning` | `done`. Finished clips live in `localStorage['voiceclip_history']`; paused drafts are memory-only.
 
 ## Provider reference
 
@@ -75,7 +79,7 @@ Single `state` object in module scope — no framework. `state.rawTranscript` is
 
 ## PWA / service worker
 
-`service-worker.js` caches the app shell (all 7 local files) on install and serves cache-first for same-origin GET requests. It does not intercept cross-origin API calls. Cache is versioned by `CACHE_NAME = 'voiceclip-v3'` — bump this string when deploying changes that must invalidate cached assets.
+`service-worker.js` caches the app shell (all 7 local files) on install and serves cache-first for same-origin GET requests. It does not intercept cross-origin API calls. Cache is versioned by `CACHE_NAME = 'voiceclip-v11'` — bump this string when deploying changes that must invalidate cached assets.
 
 ## Contribution guidelines
 
