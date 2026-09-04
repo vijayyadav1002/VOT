@@ -47,16 +47,20 @@ Two service objects route to provider implementations based on `CONFIG`:
 
 ### Recording flow
 
-1. `startRecording()` acquires mic stream → starts either `SpeechRecognition` (browser) or `MediaRecorder` (API providers).
-2. Silence detection polls `AnalyserNode` every 150 ms; auto-stops after 2.5 s below threshold.
-3. Stop path:
-   - **browser**: accumulated `state.rawTranscript` goes directly to `processCleanup()`.
-   - **API providers**: `handleBlobStop()` uploads the blob, then calls `processCleanup()`.
-4. `processCleanup(rawText)` shows raw text immediately, then replaces with AI-cleaned version.
+1. `startRecording()` acquires a mic stream, then starts either `SpeechRecognition` (browser) or `MediaRecorder` (API providers). A session mutex (`sessionPhase` + `takeGen`) ignores overlapping mic / Done / Start over while acquiring, recording, transcribing, or cleaning.
+2. Stop **releases the mic** via `releaseAudio()` — not `MediaRecorder.pause()`. There is **no** AnalyserNode silence auto-stop.
+3. After a non-empty take the session is **paused**. Concatenated transcript **text** (never audio blobs) is the source of truth in the textarea. The user chooses:
+   - **Mic tap while paused**: re-acquire the mic and append the next take with `appendTranscript`.
+   - **Done**: run `processCleanup()` once on the full concatenated raw.
+   - **Start over**: discard the in-progress draft and start a new conversation.
+4. Stop path:
+   - **browser**: accumulated `state.rawTranscript` goes to `enterPaused()` (no cleanup yet).
+   - **API providers**: `handleBlobStop()` transcribes that take’s blob, appends text, then `enterPaused()`.
+5. `processCleanup(rawText)` runs **only on Done**: shows a skeleton, then the AI-cleaned version, then persists `{ id, ts, raw, cleaned, tone, language }` to `localStorage` key `voiceclip_history` (newest-first, FIFO cap 10).
 
 ### State
 
-Single `state` object in module scope — no framework. `state.rawTranscript` is the unmodified transcript preserved for Re-clean.
+Single `state` object in module scope — no framework. `state.rawTranscript` is the unmodified transcript preserved for Re-clean. `state.sessionPhase` is `idle` | `acquiring` | `recording` | `paused` | `cleaning` | `done`. Finished clips live in `localStorage['voiceclip_history']`; paused drafts are memory-only.
 
 ## Provider reference
 
@@ -75,7 +79,7 @@ Single `state` object in module scope — no framework. `state.rawTranscript` is
 
 ## PWA / service worker
 
-`service-worker.js` caches the app shell (all 7 local files) on install and serves cache-first for same-origin GET requests. It does not intercept cross-origin API calls. Cache is versioned by `CACHE_NAME = 'voiceclip-v3'` — bump this string when deploying changes that must invalidate cached assets.
+`service-worker.js` caches the app shell (all 7 local files) on install and serves cache-first for same-origin GET requests. It does not intercept cross-origin API calls. Cache is versioned by `CACHE_NAME = 'voiceclip-v10'` — bump this string when deploying changes that must invalidate cached assets.
 
 ## Contribution guidelines
 

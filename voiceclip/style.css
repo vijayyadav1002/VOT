@@ -109,9 +109,18 @@ body {
   color: #f2f2f7;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .settings-btn {
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
   border-radius: 10px;
   border: 1px solid #1b1b2a;
   background: var(--btn-bg);
@@ -122,12 +131,17 @@ body {
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
   flex-shrink: 0;
-  padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .settings-btn:hover {
   color: var(--text-muted);
   border-color: #26263a;
+}
+
+.settings-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 /* ── Main Stage ────────────────────────────────────────────────────────────── */
@@ -413,6 +427,16 @@ body {
   gap: 8px;
 }
 
+.session-actions {
+  width: 100%;
+}
+
+.session-actions #done-btn,
+.session-actions #start-over-btn {
+  flex: 1 1 calc(50% - 4px);
+  min-height: 44px;
+}
+
 .copy-btn {
   flex: 1;
   height: 44px;
@@ -549,7 +573,7 @@ body {
   border-radius: 26px 26px 0 0;
   max-height: 85vh;
   overflow-y: auto;
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
   animation: sheet-up 0.34s cubic-bezier(.2,.85,.25,1) both;
   box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.5);
 }
@@ -589,6 +613,8 @@ body {
   font-weight: 500;
   cursor: pointer;
   padding: 4px 8px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 6px;
   font-family: inherit;
   transition: opacity 0.15s;
@@ -712,3 +738,80 @@ details[open] .sheet-advanced-toggle::before { transform: rotate(90deg); }
 }
 
 .save-btn:hover { background: var(--accent-hover); }
+
+/* ── History list ──────────────────────────────────────────────────────────── */
+.history-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 36px 16px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card-bg);
+  border: 1px solid #18182a;
+  border-radius: 14px;
+  padding: 10px 6px 10px 15px;
+}
+
+.history-row-body {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.history-preview {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.history-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.history-delete {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: #4a4a60;
+  font-size: 16px;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.history-delete:hover {
+  color: var(--text-muted);
+}
