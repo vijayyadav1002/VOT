@@ -466,6 +466,7 @@ const state = {
 
 // ─── DOM References ───────────────────────────────────────────────────────────
 const $recordBtn      = document.getElementById('record-btn');
+const $recordRing     = document.querySelector('.record-ring');
 const $status         = document.getElementById('status');
 const $statusSub      = document.getElementById('status-sub');
 const $barViz         = document.getElementById('bar-viz');
@@ -609,6 +610,7 @@ function enterPaused() {
   $recordBtn.classList.remove('processing');
   $recordBtn.classList.remove('recording');
   $barViz.classList.remove('recording');
+  syncRecordRing();
   $resultSkeleton.classList.add('hidden');
   $resultText.classList.remove('hidden');
   $resultText.value = state.rawTranscript;
@@ -626,6 +628,7 @@ function enterIdle() {
   $recordBtn.classList.remove('processing');
   $recordBtn.classList.remove('recording');
   $barViz.classList.remove('recording');
+  syncRecordRing();
   $resultSkeleton.classList.add('hidden');
   $resultText.classList.remove('hidden');
   $resultSection.classList.add('hidden');
@@ -637,6 +640,7 @@ function enterIdle() {
 
 function finishEmptyTake() {
   $recordBtn.classList.remove('processing');
+  syncRecordRing();
   showToast('No audio detected. Try again.');
   if (String(state.rawTranscript || '').trim()) enterPaused();
   else enterIdle();
@@ -655,6 +659,7 @@ async function startRecording() {
   hideSessionActions();
   hideResultActions();
   $recordBtn.classList.add('processing');
+  syncRecordRing();
   updateRecordAria();
   setStatus('Starting…', '');
 
@@ -731,6 +736,7 @@ async function startRecording() {
   $recordBtn.classList.remove('processing');
   $recordBtn.classList.add('recording');
   $barViz.classList.add('recording');
+  syncRecordRing();
   updateRecordAria();
 
   if (!continuing) {
@@ -817,6 +823,7 @@ function stopRecording() {
   $barViz.classList.remove('recording');
   $recordBtn.classList.remove('recording');
   $recordBtn.classList.add('processing');
+  syncRecordRing();
   updateRecordAria();
 
   if (CONFIG.TRANSCRIPTION_PROVIDER === 'browser') {
@@ -860,6 +867,7 @@ function forceStopRecording() {
   $barViz.classList.remove('recording');
   $recordBtn.classList.remove('recording');
   $recordBtn.classList.remove('processing');
+  syncRecordRing();
   state.browserStopHandled = true;
   state.recognitionEndPromise = null;
   state.resolveRecognitionEnd = null;
@@ -943,6 +951,7 @@ async function processCleanup(rawText) {
   hideSessionActions();
   hideResultActions();
   $recordBtn.classList.add('processing');
+  syncRecordRing();
   updateRecordAria();
   setStatus('Cleaning up…', 'Polishing with AI');
   $resultSection.classList.remove('hidden');
@@ -970,6 +979,7 @@ async function processCleanup(rawText) {
     $resultText.classList.remove('hidden');
     adjustTextareaHeight($resultText);
     $recordBtn.classList.remove('processing');
+    syncRecordRing();
     hideSessionActions();
     showResultActions();
     state.sessionPhase = 'done';
@@ -978,6 +988,13 @@ async function processCleanup(rawText) {
       persistConversation(rawText, $resultText.value);
     }
   }
+}
+
+
+function syncRecordRing() {
+  if (!$recordRing) return;
+  $recordRing.classList.toggle('recording', $recordBtn.classList.contains('recording'));
+  $recordRing.classList.toggle('processing', $recordBtn.classList.contains('processing'));
 }
 
 // ─── UI Helpers ───────────────────────────────────────────────────────────────
@@ -1112,12 +1129,19 @@ $settingsModal.addEventListener('click', (e) => {
 // ─── History Modal ────────────────────────────────────────────────────────────
 function closeHistory() { $historyModal.classList.add('hidden'); }
 
+function toneTitle(tone) {
+  const t = String(tone || 'casual').toLowerCase();
+  if (t === 'formal') return 'Formal';
+  if (t === 'bullets') return 'Bullets';
+  return 'Casual';
+}
+
 function renderHistoryList() {
   const list = HistoryStore.load();
   $historyList.replaceChildren();
 
   if (list.length === 0) {
-    $historyEmpty.textContent = 'No conversations yet.';
+    $historyEmpty.textContent = 'No clips yet';
     $historyEmpty.classList.remove('hidden');
     $historyList.classList.add('hidden');
     return;
@@ -1130,21 +1154,30 @@ function renderHistoryList() {
     const row = document.createElement('div');
     row.className = 'history-row';
 
+    const icon = document.createElement('div');
+    icon.className = 'history-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>';
+
     const body = document.createElement('button');
     body.type = 'button';
     body.className = 'history-row-body';
     body.setAttribute('aria-label', 'Restore conversation');
 
-    const preview = document.createElement('div');
-    preview.className = 'history-preview';
-    preview.textContent = previewText(item && (item.cleaned || item.raw), 80);
+    const title = document.createElement('div');
+    title.className = 'history-title';
+    title.textContent = toneTitle(item && item.tone);
 
-    const time = document.createElement('div');
-    time.className = 'history-time';
-    time.textContent = formatRelativeTime(item && item.ts);
+    const snippet = document.createElement('div');
+    snippet.className = 'history-snippet';
+    snippet.textContent = previewText(item && (item.cleaned || item.raw), 120);
 
-    body.appendChild(preview);
-    body.appendChild(time);
+    body.appendChild(title);
+    body.appendChild(snippet);
+
+    const pill = document.createElement('span');
+    pill.className = 'history-pill';
+    pill.textContent = formatRelativeTime(item && item.ts);
 
     const del = document.createElement('button');
     del.type = 'button';
@@ -1164,7 +1197,9 @@ function renderHistoryList() {
       restoreConversation(item);
     });
 
+    row.appendChild(icon);
     row.appendChild(body);
+    row.appendChild(pill);
     row.appendChild(del);
     $historyList.appendChild(row);
   });
