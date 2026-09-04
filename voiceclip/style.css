@@ -922,6 +922,7 @@ details[open] .sheet-advanced-toggle::before { transform: rotate(90deg); }
 }
 
 .history-title {
+  font-family: 'Noto Sans Devanagari', 'Nirmala UI', 'Kohinoor Devanagari', 'Devanagari Sangam MN', 'Geist', system-ui, sans-serif;
   font-size: 13px;
   font-weight: 600;
   color: var(--ink);
@@ -937,6 +938,7 @@ details[open] .sheet-advanced-toggle::before { transform: rotate(90deg); }
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  font-family: 'Noto Sans Devanagari', 'Nirmala UI', 'Kohinoor Devanagari', 'Devanagari Sangam MN', 'Geist', system-ui, sans-serif;
 }
 
 .history-pill {
