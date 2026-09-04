@@ -1,4 +1,4 @@
-const CACHE_NAME = 'voiceclip-v11';
+const CACHE_NAME = 'voiceclip-v12';
 const APP_SHELL  = [
   './',
   './index.html',
