@@ -43,7 +43,7 @@ The single `CONFIG` object at the top of `app.js` controls all provider routing.
 Two service objects route to provider implementations based on `CONFIG`:
 
 - **`TranscriptionService`** — `.transcribeBlob(audioBlob)` for API providers; `.startBrowserRecognition(onInterim, onFinal, onError)` for the `"browser"` provider (webkitSpeechRecognition). Adding a new provider only requires touching these two objects.
-- **`CleanupService`** — `.cleanup(text, tone)` calls the selected AI provider with a `tone=<value>` prefix on the user message. Uses `CLEANUP_SYSTEM_PROMPT` for English and `CLEANUP_SYSTEM_PROMPT_HI` for Hinglish (`LANGUAGE_MODE === 'hi-en'`). Both prompts instruct the model to act as a text editor only — never answering questions or acting on the content, only cleaning it up.
+- **`CleanupService`** — `.cleanup(text, tone)` calls the selected AI provider with a `tone=<value>` prefix on the user message. Uses `CLEANUP_SYSTEM_PROMPT` for English and `CLEANUP_SYSTEM_PROMPT_HI` for Hinglish (`LANGUAGE_MODE === 'hi-en'`). Both prompts instruct the model to act as a text editor only — never answering questions or acting on the content, only cleaning it up. Hinglish cleanup is mixed-script (Hindi in Devanagari, English in Latin) and must not translate; a retry fires if English Latin words collapse into Devanagari. Whisper calls in `hi-en` send a mixed-script `prompt` hint instead of `language=en`.
 
 ### Recording flow
 
@@ -79,7 +79,7 @@ Single `state` object in module scope — no framework. `state.rawTranscript` is
 
 ## PWA / service worker
 
-`service-worker.js` caches the app shell (all 7 local files) on install and serves cache-first for same-origin GET requests. It does not intercept cross-origin API calls. Cache is versioned by `CACHE_NAME = 'voiceclip-v10'` — bump this string when deploying changes that must invalidate cached assets.
+`service-worker.js` caches the app shell (all 7 local files) on install and serves cache-first for same-origin GET requests. It does not intercept cross-origin API calls. Cache is versioned by `CACHE_NAME = 'voiceclip-v11'` — bump this string when deploying changes that must invalidate cached assets.
 
 ## Contribution guidelines
 
